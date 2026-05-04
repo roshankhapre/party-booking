@@ -1,0 +1,55 @@
+export enum PartyType {
+  BIRTHDAY = 'BIRTHDAY',
+  KITTY = 'KITTY',
+  ENGAGEMENT = 'ENGAGEMENT',
+  HALDI = 'HALDI',
+  MUNDAN = 'MUNDAN',
+  ANNIVERSARY = 'ANNIVERSARY',
+  CORPORATE = 'CORPORATE',
+  BABY_SHOWER = 'BABY_SHOWER',
+  CUSTOM = 'CUSTOM'
+}
+
+export enum BookingType {
+  PACKAGE = 'PACKAGE',
+  TABLE_ONLY = 'TABLE_ONLY'
+}
+
+export enum TimeSlot {
+  MORNING = 'MORNING',
+  EVENING = 'EVENING',
+  FULLDAY = 'FULLDAY'
+}
+
+export enum BookingStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+export enum PaymentMode {
+  CASH = 'CASH',
+  UPI = 'UPI',
+  CARD = 'CARD',
+  BANK_TRANSFER = 'BANK_TRANSFER'
+}
+
+export enum ReminderType {
+  BOOKING_CONFIRMATION = 'BOOKING_CONFIRMATION',
+  THREE_DAYS_BEFORE = 'THREE_DAYS_BEFORE',
+  ONE_DAY_BEFORE = 'ONE_DAY_BEFORE',
+  DAY_OF = 'DAY_OF',
+  THANK_YOU = 'THANK_YOU'
+}
+
+export enum ReminderStatus {
+  SENT = 'SENT',
+  FAILED = 'FAILED',
+  PENDING = 'PENDING'
+}
+
+export enum Channel {
+  WHATSAPP = 'WHATSAPP',
+  SMS = 'SMS'
+}

@@ -1,0 +1,83 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Package {
+  id           String    @id @default(uuid())
+  name         String
+  description  String?
+  pricePerHead Float?
+  flatPrice    Float?
+  minMembers   Int       @default(1)
+  includes     String?   // JSON string
+  isActive     Boolean   @default(true)
+  bookings     Booking[] 
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([name])
+}
+
+model Booking {
+  id                String        @id @default(uuid())
+  bookingCode       String        @unique
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  partyType         String
+  bookingType       String
+  eventDate         DateTime
+  eventTimeSlot     String
+  memberCount       Int
+  packageId         String?
+  package           Package?      @relation(fields: [packageId], references: [id])
+  isFullHall        Boolean       @default(false)
+  extraHallCharge   Float       @default(0)
+  buffetRequested   Boolean       @default(false)
+  extraBuffetCharge Float       @default(0)
+  advanceAmount     Float       @default(0)
+  totalAmount       Float?
+  balanceAmount     Float?
+  status            String        @default("PENDING")
+  specialRequests   String?
+  payments          Payment[]
+  reminders         Reminder[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model Payment {
+  id          String      @id @default(uuid())
+  bookingId   String
+  booking     Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount      Float
+  paymentMode String
+  paidAt      DateTime    @default(now())
+  notes       String?
+}
+
+model Reminder {
+  id             String         @id @default(uuid())
+  bookingId      String
+  booking        Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  reminderType   String
+  status         String         @default("PENDING")
+  channel        String         @default("WHATSAPP")
+  sentAt         DateTime?
+  messageContent String?
+  createdAt      DateTime       @default(now())
+}
