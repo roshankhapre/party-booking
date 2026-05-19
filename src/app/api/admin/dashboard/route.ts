@@ -12,15 +12,16 @@ export async function GET() {
       totalBookingsMonth,
       totalEarningsMonth,
       upcomingToday,
-      upcomingTomorrow,
+      pendingConfirmations,
       bookingsByPartyType,
-      recentBookings
+      recentBookings,
+      todaySchedule
     ] = await Promise.all([
       // 1. Total bookings this month
       prisma.booking.count({
         where: { eventDate: { gte: monthStart, lte: monthEnd }, status: { not: 'CANCELLED' } }
       }),
-      // 2. Earnings this month (Sum of advance and balance paid if completed)
+      // 2. Earnings this month
       prisma.booking.aggregate({
         where: { eventDate: { gte: monthStart, lte: monthEnd }, status: { in: ['CONFIRMED', 'COMPLETED'] } },
         _sum: { advanceAmount: true, totalAmount: true }
@@ -29,40 +30,47 @@ export async function GET() {
       prisma.booking.count({
         where: { eventDate: { gte: today, lt: addDays(today, 1) }, status: 'CONFIRMED' }
       }),
-      // 4. Upcoming tomorrow
+      // 4. Pending confirmations
       prisma.booking.count({
-        where: { eventDate: { gte: addDays(today, 1), lt: addDays(today, 2) }, status: 'CONFIRMED' }
+        where: { status: 'PENDING' }
       }),
-      // 5. Bookings by Party Type (groupBy)
+      // 5. Bookings by Party Type
       prisma.booking.groupBy({
         by: ['partyType'],
         _count: { partyType: true },
-        where: { eventDate: { gte: monthStart, lte: monthEnd } }
+        where: { eventDate: { gte: monthStart, lte: monthEnd }, status: { not: 'CANCELLED' } }
       }),
-      // 6. Revenue trend - simplified to recent bookings
+      // 6. Recent bookings
       prisma.booking.findMany({
-        where: { status: { in: ['CONFIRMED', 'COMPLETED'] } },
         orderBy: { createdAt: 'desc' },
         take: 5
+      }),
+      // 7. Today's schedule
+      prisma.booking.findMany({
+        where: { eventDate: { gte: today, lt: addDays(today, 1) }, status: { not: 'CANCELLED' } },
+        orderBy: { eventDate: 'asc' },
+        include: { package: true }
       })
     ])
 
-    const totalEarnings = Number(totalEarningsMonth._sum.totalAmount || 0)
+    const totalEarnings = Number(totalEarningsMonth._sum.totalAmount || totalEarningsMonth._sum.advanceAmount || 0)
 
     const revenueTrendData = recentBookings.map(b => ({
       date: b.createdAt.toISOString().split('T')[0],
       amount: Number(b.totalAmount || b.advanceAmount || 0)
-    })).reverse() // simplified trend
+    })).reverse()
 
     return NextResponse.json({
       stats: {
         totalBookingsMonth,
         totalEarningsMonth: totalEarnings,
         upcomingToday,
-        upcomingTomorrow
+        pendingConfirmations
       },
       chartData: bookingsByPartyType.map(b => ({ name: b.partyType, value: b._count.partyType })),
-      revenueTrend: revenueTrendData
+      revenueTrend: revenueTrendData,
+      recentBookings,
+      todaySchedule
     })
   } catch (err) {
     console.error('Admin Dashboard API Error:', err)

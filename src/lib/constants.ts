@@ -6,7 +6,8 @@ export enum PartyType {
   MUNDAN = 'MUNDAN',
   ANNIVERSARY = 'ANNIVERSARY',
   CORPORATE = 'CORPORATE',
-  BABY_SHOWER = 'BABY_SHOWER',
+  KIDS_PARTY = 'KIDS_PARTY',
+  DAL_BATI_SPECIAL = 'DAL_BATI_SPECIAL',
   CUSTOM = 'CUSTOM'
 }
 
@@ -17,8 +18,10 @@ export enum BookingType {
 
 export enum TimeSlot {
   MORNING = 'MORNING',
+  AFTERNOON = 'AFTERNOON',
   EVENING = 'EVENING',
-  FULLDAY = 'FULLDAY'
+  NIGHT = 'NIGHT',
+  LATE_NIGHT = 'LATE_NIGHT'
 }
 
 export enum BookingStatus {

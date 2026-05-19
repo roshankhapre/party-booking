@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { calculateBookingPrice } from '@/lib/bookingLogic'
 import { scheduleRemindersForBooking, processReminder, sendWhatsAppMessage, getMessageContent } from '@/lib/whatsapp'
+import { sendBookingConfirmationEmail, sendAdminNewBookingEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
   try {
@@ -35,6 +36,24 @@ export async function POST(request: Request) {
     let extraHallCharge = reqExtraHall !== undefined ? Number(reqExtraHall) : 0
     let extraBuffetCharge = reqExtraBuffet !== undefined ? Number(reqExtraBuffet) : 0
     let isFullHallRequested = isFullHall || Number(memberCount) >= 40
+
+    // Smart booking conflict detection
+    const bookingDate = new Date(eventDate)
+    const existingBookings = await prisma.booking.findMany({
+      where: {
+        eventDate: bookingDate,
+        eventTimeSlot,
+        status: { not: 'CANCELLED' }
+      }
+    })
+
+    const hasFullHallBooking = existingBookings.some((b: any) => b.isFullHall)
+    if (hasFullHallBooking) {
+      return NextResponse.json({ error: 'Conflict: A Full Hall event is already booked for this time slot.' }, { status: 409 })
+    }
+    if (isFullHallRequested && existingBookings.length > 0) {
+      return NextResponse.json({ error: `Conflict: Cannot book Full Hall. ${existingBookings.length} other bookings exist in this time slot.` }, { status: 409 })
+    }
 
     if (bookingType === 'PACKAGE') {
       const pkg = await prisma.package.findUnique({ where: { id: packageId } })
@@ -103,6 +122,12 @@ export async function POST(request: Request) {
       await sendWhatsAppMessage(adminPhone, 'new_booking_alert', 'en', [], alertContent)
     }
 
+    // Send emails
+    if (customerEmail) {
+      await sendBookingConfirmationEmail(customerEmail, booking).catch(console.error)
+    }
+    await sendAdminNewBookingEmail(booking).catch(console.error)
+
     return NextResponse.json({ success: true, booking })
   } catch (error) {
     console.error('Create booking error:', error)
@@ -115,6 +140,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const code = searchParams.get('code')
+    const phone = searchParams.get('phone')
     
     if (code) {
       const booking = await prisma.booking.findUnique({
@@ -128,6 +154,9 @@ export async function GET(request: Request) {
     let where: any = {}
     if (status) {
       where.status = status
+    }
+    if (phone) {
+      where.customerPhone = phone
     }
 
     const bookings = await prisma.booking.findMany({

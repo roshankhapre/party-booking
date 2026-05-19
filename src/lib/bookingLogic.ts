@@ -1,4 +1,4 @@
-import { BookingType } from '@prisma/client'
+import { BookingType } from '@/lib/constants'
 
 export const EXTRA_HALL_CHARGE = 5000
 export const EXTRA_BUFFET_CHARGE_PER_HEAD = 150

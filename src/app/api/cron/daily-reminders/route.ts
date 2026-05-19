@@ -13,37 +13,11 @@ export async function GET(request: Request) {
 
   const today = startOfDay(new Date())
   const tomorrow = addDays(today, 1)
-  const threeDaysFromNow = addDays(today, 3)
   const yesterday = subDays(today, 1)
 
   let messagesSent = 0
 
-  // 1. Send "1 Day Before" Reminder
-  const oneDayBookings = await prisma.booking.findMany({
-    where: {
-      status: 'CONFIRMED',
-      eventDate: {
-        gte: tomorrow,
-        lt: addDays(tomorrow, 1)
-      },
-      reminders: { none: { reminderType: 'ONE_DAY_BEFORE', status: 'SENT' } }
-    }
-  })
-
-  for (const b of oneDayBookings) {
-    await sendWhatsAppMessage(b.customerPhone, 'one_day_before_reminder', 'en')
-    await prisma.reminder.create({
-      data: {
-        bookingId: b.id,
-        reminderType: 'ONE_DAY_BEFORE',
-        status: 'SENT',
-        sentAt: new Date()
-      }
-    })
-    messagesSent++
-  }
-
-  // 2. Send "Day of" Reminder
+  // 1. Send "Day of" Reminder
   const dayOfBookings = await prisma.booking.findMany({
     where: {
       status: 'CONFIRMED',
@@ -68,7 +42,7 @@ export async function GET(request: Request) {
     messagesSent++
   }
 
-  // 3. Send "Thank You" 1 Day After
+  // 2. Send "Thank You" 1 Day After
   const thankYouBookings = await prisma.booking.findMany({
     where: {
       status: 'COMPLETED',
@@ -92,6 +66,11 @@ export async function GET(request: Request) {
     })
     messagesSent++
   }
+
+  // 3. Admin Daily Summary
+  const adminPhone = process.env.ADMIN_WHATSAPP || '919000000000'
+  await sendWhatsAppMessage(adminPhone, 'admin_daily_summary', 'en')
+  messagesSent++
 
   return NextResponse.json({ success: true, processed: messagesSent })
 }

@@ -10,7 +10,7 @@ import { PartyType, BookingType, TimeSlot } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
@@ -33,11 +33,18 @@ const bookingSchema = z.object({
   specialRequests: z.string().optional(),
   welcomeDrink: z.string().optional(),
   starter: z.string().optional(),
+  paneerVeg: z.string().optional(),
+  seasonalVeg: z.string().optional(),
+  sweet: z.string().optional(),
+  dal: z.string().optional(),
+  termsAccepted: z.boolean().refine(val => val === true, {
+    message: "You must accept the terms and conditions"
+  })
 })
 
 type FormValues = z.infer<typeof bookingSchema>
 
-export function BookingForm() {
+export function BookingForm({ isAdmin }: { isAdmin?: boolean } = {}) {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [packages, setPackages] = useState<Package[]>([])
@@ -59,7 +66,12 @@ export function BookingForm() {
       customerEmail: '',
       specialRequests: '',
       welcomeDrink: '',
-      starter: ''
+      starter: '',
+      paneerVeg: '',
+      seasonalVeg: '',
+      sweet: '',
+      dal: '',
+      termsAccepted: false
     }
   })
 
@@ -95,10 +107,11 @@ export function BookingForm() {
   const getFieldsForStep = (s: number) => {
     switch (s) {
       case 1: return ['partyType']
-      case 2: return ['eventDate', 'eventTimeSlot', 'memberCount']
-      case 3: return ['bookingType']
+      case 2: return ['eventDate', 'eventTimeSlot']
+      case 3: return ['memberCount', 'bookingType']
       case 4: return wBookingType === BookingType.PACKAGE ? ['packageId'] : []
       case 5: return ['customerName', 'customerPhone', 'customerEmail']
+      case 6: return ['termsAccepted']
       default: return []
     }
   }
@@ -127,24 +140,36 @@ export function BookingForm() {
   }
 
   async function onSubmit(data: FormValues) {
-    if (step !== 6) return nextStep()
+    if (step !== 6) {
+      nextStep();
+      return;
+    }
     
     setSubmitting(true)
     try {
-      const finalSpecialRequests = [
-        data.welcomeDrink ? `Welcome Drink: ${data.welcomeDrink}` : '',
-        data.starter ? `Starter: ${data.starter}` : '',
-        data.specialRequests || ''
-      ].filter(Boolean).join('\n')
+      const selectionsObj = {
+        welcomeDrink: data.welcomeDrink || undefined,
+        starter: data.starter || undefined,
+        paneerVeg: data.paneerVeg || undefined,
+        seasonalVeg: data.seasonalVeg || undefined,
+        sweet: data.sweet || undefined,
+        dal: data.dal || undefined,
+        specialRequests: data.specialRequests || undefined
+      }
 
       const payload = { 
         ...data, 
-        specialRequests: finalSpecialRequests 
+        specialRequests: JSON.stringify(selectionsObj) 
       }
       
       // Remove extra fields not in schema
       delete (payload as any).welcomeDrink
       delete (payload as any).starter
+      delete (payload as any).paneerVeg
+      delete (payload as any).seasonalVeg
+      delete (payload as any).sweet
+      delete (payload as any).dal
+      delete (payload as any).termsAccepted
 
       const res = await fetch('/api/bookings', {
         method: 'POST',
@@ -179,7 +204,7 @@ export function BookingForm() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if(step < 6) nextStep(); } }} className="space-y-6">
 
           {/* STEP 1 */}
           {step === 1 && (
@@ -192,7 +217,7 @@ export function BookingForm() {
                     className={`border p-4 rounded-xl cursor-pointer text-center transition-all ${watch('partyType') === type ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}`}
                     onClick={() => setValue('partyType', type)}
                   >
-                    <div className="font-semibold">{type.replace('_', ' ')}</div>
+                    <div className="font-semibold text-sm">{type.replace(/_/g, ' ')}</div>
                   </div>
                 ))}
               </div>
@@ -217,15 +242,25 @@ export function BookingForm() {
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select Slot" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="MORNING">Morning (10 AM - 2 PM)</SelectItem>
-                        <SelectItem value="EVENING">Evening (5 PM - 10 PM)</SelectItem>
-                        <SelectItem value="FULLDAY">Full Day</SelectItem>
+                        <SelectItem value="MORNING">Morning: 11 AM - 2 PM</SelectItem>
+                        <SelectItem value="AFTERNOON">Afternoon: 1 PM - 4 PM</SelectItem>
+                        <SelectItem value="EVENING">Evening: 4 PM - 7 PM</SelectItem>
+                        <SelectItem value="NIGHT">Night: 7 PM - 10 PM</SelectItem>
+                        <SelectItem value="LATE_NIGHT">Late Night: 8 PM - 11 PM</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground mt-2">Note: Event duration 3 hours. Extra ₹1000/hour after that.</p>
                     <FormMessage />
                   </FormItem>
                 )} />
               </div>
+            </div>
+          )}
+
+          {/* STEP 3 */}
+          {step === 3 && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium">Event Details</h3>
               <FormField control={form.control} name="memberCount" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Number of Guests</FormLabel>
@@ -233,29 +268,25 @@ export function BookingForm() {
                   <FormMessage />
                 </FormItem>
               )} />
-            </div>
-          )}
-
-          {/* STEP 3 */}
-          {step === 3 && (
-            <div className="space-y-4">
-               <h3 className="text-lg font-medium">Booking Type</h3>
-               <div className="grid md:grid-cols-2 gap-4">
-                  <div 
-                    className={`border p-6 rounded-xl cursor-pointer transition-all ${wBookingType === BookingType.PACKAGE ? 'border-primary bg-primary/5 ring-2 ring-primary' : 'border-border hover:bg-muted'}`}
-                    onClick={() => setValue('bookingType', BookingType.PACKAGE)}
-                  >
-                    <h4 className="font-bold text-lg mb-2">Package Booking</h4>
-                    <p className="text-sm text-muted-foreground">Pre-select food, decoration & hall. Pay fixed amount based on package. Best for organized events.</p>
-                  </div>
-                  <div 
-                    className={`border p-6 rounded-xl cursor-pointer transition-all ${wBookingType === BookingType.TABLE_ONLY ? 'border-primary bg-primary/5 ring-2 ring-primary' : 'border-border hover:bg-muted'}`}
-                    onClick={() => setValue('bookingType', BookingType.TABLE_ONLY)}
-                  >
-                    <h4 className="font-bold text-lg mb-2">Table Only Booking</h4>
-                    <p className="text-sm text-muted-foreground">Reserve tables or area. Order food à la carte from menu on the day. Advance ₹2000 required.</p>
-                  </div>
-               </div>
+              <div className="space-y-4">
+                 <h3 className="text-lg font-medium">Booking Type</h3>
+                 <div className="grid md:grid-cols-2 gap-4">
+                    <div 
+                      className={`border p-6 rounded-xl cursor-pointer transition-all ${wBookingType === BookingType.PACKAGE ? 'border-primary bg-primary/5 ring-2 ring-primary' : 'border-border hover:bg-muted'}`}
+                      onClick={() => setValue('bookingType', BookingType.PACKAGE)}
+                    >
+                      <h4 className="font-bold text-lg mb-2">Package Booking</h4>
+                      <p className="text-sm text-muted-foreground">Pre-select food, decoration & hall. Pay fixed amount based on package. Best for organized events.</p>
+                    </div>
+                    <div 
+                      className={`border p-6 rounded-xl cursor-pointer transition-all ${wBookingType === BookingType.TABLE_ONLY ? 'border-primary bg-primary/5 ring-2 ring-primary' : 'border-border hover:bg-muted'}`}
+                      onClick={() => setValue('bookingType', BookingType.TABLE_ONLY)}
+                    >
+                      <h4 className="font-bold text-lg mb-2">Table Only Booking</h4>
+                      <p className="text-sm text-muted-foreground">Reserve tables or area. Order food à la carte from menu on the day. Advance ₹2000 required.</p>
+                    </div>
+                 </div>
+              </div>
             </div>
           )}
 
@@ -332,6 +363,8 @@ export function BookingForm() {
                 <FormField control={form.control} name="customerEmail" render={({ field }) => (
                   <FormItem><FormLabel>Email (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
+                
+                <h4 className="font-medium mt-4 pt-4 border-t">Food Selections (Optional)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField control={form.control} name="welcomeDrink" render={({ field }) => (
                     <FormItem>
@@ -361,9 +394,71 @@ export function BookingForm() {
                       <FormMessage />
                     </FormItem>
                   )} />
+                  
+                  {wBookingType === BookingType.PACKAGE && (
+                    <>
+                      <FormField control={form.control} name="paneerVeg" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Paneer Vegetable</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select Paneer" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {['Paneer Chatpata', 'Paneer Lababder', 'Paneer Kohlapuri', 'Paneer Masala', 'Matar Paneer', 'Chole Paneer', 'Paneer Punjabi', 'Corn Paneer', 'Paneer do Pyaza'].map(s => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="seasonalVeg" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Seasonal Vegetable</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select Veg" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {['Mix Veg', 'Bhindi Masala', 'Chana Masala', 'Sev Masala', 'Corn Palak', 'Aloo Gobhi', 'Veg Handi', 'Aloo Matar', 'Aloo Jeera', 'Aloo Chole', 'Matar Masala', 'Tawa Veg', 'Aloo Methi'].map(s => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="sweet" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sweet</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select Sweet" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {['Gulab Jamun', 'Rasgulla', 'Kheer', 'Halwa', 'Ice Cream'].map(s => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="dal" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Dal</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select Dal" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {['Dal Tadka', 'Dal Makhani', 'Dal Fry', 'Panchmel Dal'].map(s => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </>
+                  )}
                 </div>
+                
                 <FormField control={form.control} name="specialRequests" render={({ field }) => (
-                  <FormItem><FormLabel>Special Requests</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Special Requests / Notes</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
             </div>
@@ -375,8 +470,8 @@ export function BookingForm() {
               <h3 className="text-lg font-medium">Review & Confirm</h3>
               <Card className="shadow-none">
                 <CardHeader className="bg-muted/30 pb-4">
-                  <CardTitle className="text-xl">{watch('partyType')} - {wBookingType === BookingType.PACKAGE ? 'Package Booking' : 'Table Booking'}</CardTitle>
-                  <CardDescription>{watch('eventDate')} | {watch('eventTimeSlot')} | Guests: {wMemberCount}</CardDescription>
+                  <CardTitle className="text-xl">{watch('partyType').replace(/_/g, ' ')} - {wBookingType === BookingType.PACKAGE ? 'Package Booking' : 'Table Booking'}</CardTitle>
+                  <CardDescription>{watch('eventDate')} | {watch('eventTimeSlot').replace(/_/g, ' ')} | Guests: {wMemberCount}</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -401,17 +496,25 @@ export function BookingForm() {
                   
                   <div className="mt-6 p-4 bg-muted/30 rounded-xl border border-border">
                     <h4 className="font-bold mb-2 text-sm">Terms & Conditions</h4>
-                    <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+                    <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground mb-4">
                       <li>Advance payment is non-refundable</li>
                       <li>Outside food not allowed</li>
                       <li>Children above age 5 years (3 feet) counted as 1 member</li>
-                      <li>Event duration 3 hours</li>
+                      <li>Event duration 3 hours. After 3 hours ₹1000 per hour extra charge.</li>
                       <li>Alcoholic drinks and smoking prohibited</li>
                       <li>Decoration charges extra</li>
                       <li>No packing/parcel available during party</li>
-                      <li>After 3 hours ₹1000 per hour extra charge</li>
                       <li>Payment taken for minimum members fixed at time of booking</li>
                     </ul>
+                    <FormField control={form.control} name="termsAccepted" render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2 border-t mt-4 border-border">
+                        <FormControl><input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 mt-1 rounded border-gray-300 text-primary" /></FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>I accept all terms and conditions</FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )} />
                   </div>
                 </CardContent>
               </Card>
