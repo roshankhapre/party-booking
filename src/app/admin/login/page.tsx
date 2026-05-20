@@ -36,7 +36,7 @@ export default function AdminLogin() {
     } else {
       toast({
         title: "Login Successful",
-        description: "Welcome to Antigravity Admin",
+        description: "Welcome to Darshan Cafe Admin",
       })
       window.location.href = "/admin"
     }
@@ -46,7 +46,7 @@ export default function AdminLogin() {
     <div className="flex h-screen items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-md shadow-xl border-accent/20">
         <CardHeader className="space-y-1 align-center text-center">
-          <CardTitle className="text-2xl font-bold tracking-tight">Antigravity Admin</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">Darshan Cafe Admin</CardTitle>
           <CardDescription>Enter your credentials to access the dashboard</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -56,7 +56,7 @@ export default function AdminLogin() {
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="admin@antigravity.com" 
+                placeholder="admin@darshancafe.com" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

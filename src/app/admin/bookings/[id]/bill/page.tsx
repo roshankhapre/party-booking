@@ -28,7 +28,7 @@ export default function PrintBillPage() {
     <div className="bg-white text-black min-h-screen p-8 print:p-0 font-sans max-w-3xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-black pb-4">
-        <h1 className="text-4xl font-bold uppercase tracking-wider mb-2">Antigravity</h1>
+        <h1 className="text-4xl font-bold uppercase tracking-wider mb-2">Darshan Cafe</h1>
         <p className="text-sm">Rooftop Restaurant & Bar, Indore, MP</p>
         <p className="text-sm font-semibold mt-2">GSTIN: 23AAAAA0000A1Z5</p>
       </div>
@@ -129,7 +129,7 @@ export default function PrintBillPage() {
 
       {/* Footer */}
       <div className="text-center text-sm border-t-2 border-black pt-4 text-gray-600 mt-12">
-        <p>Thank you for celebrating with us at Antigravity!</p>
+        <p>Thank you for celebrating with us at Darshan Cafe!</p>
         <p>For inquiries, contact +91 9876543210</p>
       </div>
 

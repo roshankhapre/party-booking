@@ -107,7 +107,7 @@ export default function BookingConfirmation() {
           <CardFooter className="bg-muted/50 border-t p-6 flex flex-col sm:flex-row justify-between gap-4 items-center">
              <div className="flex items-center text-muted-foreground text-sm">
                <MapPin className="w-4 h-4 mr-2" />
-               Antigravity, rooftop, Indore, MP
+               Darshan's Cafe & Restaurant, rooftop, Indore, MP
              </div>
              <Button onClick={() => window.print()} className="w-full sm:w-auto">
                <Printer className="w-4 h-4 mr-2" /> Print Confirmation

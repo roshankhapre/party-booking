@@ -56,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-full md:w-64 bg-card border-r flex flex-col">
         <div className="p-6 flex justify-between items-start">
           <div>
-            <h2 className="text-2xl font-bold text-primary">Antigravity</h2>
+            <h2 className="text-2xl font-bold text-primary">Darshan Cafe</h2>
             <p className="text-sm text-muted-foreground">Manager Portal</p>
           </div>
           

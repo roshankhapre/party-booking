@@ -6,8 +6,8 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Antigravity Party Booking',
-  description: 'Party Booking Management System for Antigravity Rooftop Restaurant',
+  title: 'Darshan Cafe Party Booking',
+  description: 'Party Booking Management System for Darshan Cafe Rooftop Restaurant',
 }
 
 export default function RootLayout({

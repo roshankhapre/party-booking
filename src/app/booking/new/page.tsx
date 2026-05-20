@@ -1,7 +1,7 @@
 import { BookingForm } from "@/components/booking/BookingForm"
 
 export const metadata = {
-  title: 'New Booking | Antigravity',
+  title: 'New Booking | Darshan Cafe',
 }
 
 export default function NewBookingPage() {
