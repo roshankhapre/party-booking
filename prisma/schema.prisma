@@ -1,84 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   email     String   @unique
   password  String
-  name      String
+  name      String?
   role      String   @default("ADMIN")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Package {
-  id           String    @id @default(uuid())
-  name         String
+  id           String    @id @default(cuid())
+  name         String    @unique
   description  String?
-  pricePerHead Float?
+  pricePerHead Float     @default(0)
   flatPrice    Float?
   minMembers   Int       @default(1)
-  includes     String?   // JSON string
+  includes     String    @default("[]")
   isActive     Boolean   @default(true)
-  bookings     Booking[] 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-
-  @@unique([name])
+  bookings     Booking[]
 }
 
 model Booking {
-  id                String        @id @default(uuid())
-  bookingCode       String        @unique
+  id                String     @id @default(cuid())
+  bookingCode       String     @unique
   customerName      String
   customerPhone     String
   customerEmail     String?
   partyType         String
-  bookingType       String
+  bookingType       String     @default("TABLE_ONLY")
   eventDate         DateTime
   eventTimeSlot     String
   memberCount       Int
-  packageId         String?
-  package           Package?      @relation(fields: [packageId], references: [id])
-  isFullHall        Boolean       @default(false)
-  extraHallCharge   Float       @default(0)
-  buffetRequested   Boolean       @default(false)
-  extraBuffetCharge Float       @default(0)
-  advanceAmount     Float       @default(0)
+  isFullHall        Boolean    @default(false)
+  extraHallCharge   Float      @default(0)
+  buffetRequested   Boolean    @default(false)
+  extraBuffetCharge Float      @default(0)
+  advanceAmount     Float      @default(2000)
   totalAmount       Float?
   balanceAmount     Float?
-  status            String        @default("PENDING")
+  status            String     @default("PENDING")
   specialRequests   String?
+  packageId         String?
+  package           Package?   @relation(fields: [packageId], references: [id])
   payments          Payment[]
   reminders         Reminder[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 }
 
 model Payment {
-  id          String      @id @default(uuid())
+  id          String   @id @default(cuid())
   bookingId   String
-  booking     Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   amount      Float
   paymentMode String
-  paidAt      DateTime    @default(now())
+  paidAt      DateTime @default(now())
   notes       String?
 }
 
 model Reminder {
-  id             String         @id @default(uuid())
+  id             String    @id @default(cuid())
   bookingId      String
-  booking        Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking        Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   reminderType   String
-  status         String         @default("PENDING")
-  channel        String         @default("WHATSAPP")
-  sentAt         DateTime?
+  channel        String    @default("WHATSAPP")
+  status         String    @default("PENDING")
   messageContent String?
-  createdAt      DateTime       @default(now())
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
 }

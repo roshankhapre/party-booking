@@ -1,85 +1,58 @@
-"use client"
-
-import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { toast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
+'use client'
+import { useState } from 'react'
+import { signIn } from 'next-auth/react'
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState('admin@darshancafe.com')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-
-    const result = await signIn("credentials", {
+    setError('')
+    const result = await signIn('credentials', {
       redirect: false,
       email,
       password,
     })
-
+    setLoading(false)
     if (result?.error) {
-      toast({
-        title: "Login Failed",
-        description: "Invalid email or password",
-        variant: "destructive",
-      })
-      setLoading(false)
+      setError('Invalid email or password. Try admin@darshancafe.com / admin123')
     } else {
-      toast({
-        title: "Login Successful",
-        description: "Welcome to Darshan Cafe Admin",
-      })
-      window.location.href = "/admin"
+      window.location.href = '/admin'
     }
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-muted/40 px-4">
-      <Card className="w-full max-w-md shadow-xl border-accent/20">
-        <CardHeader className="space-y-1 align-center text-center">
-          <CardTitle className="text-2xl font-bold tracking-tight">Darshan Cafe Admin</CardTitle>
-          <CardDescription>Enter your credentials to access the dashboard</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2 text-left">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="admin@darshancafe.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2 text-left">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Sign In"}
-            </Button>
-          </CardFooter>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center mb-2">Darshan Cafe Admin</h1>
+        <p className="text-gray-500 text-center mb-6 text-sm">K's Darshan Cafe & Restaurant</p>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800" />
+          </div>
+          <button type="submit" disabled={loading}
+            className="w-full py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50 transition">
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
         </form>
-      </Card>
+        <p className="text-xs text-gray-400 text-center mt-4">admin@darshancafe.com / admin123</p>
+      </div>
     </div>
   )
 }

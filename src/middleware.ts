@@ -4,26 +4,29 @@ import { getToken } from 'next-auth/jwt'
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  if (
-    pathname === '/admin/login' ||
-    pathname.startsWith('/api/') ||
-    pathname.startsWith('/_next/') ||
-    pathname.includes('favicon')
-  ) {
-    return NextResponse.next()
-  }
-  if (!pathname.startsWith('/admin')) {
-    return NextResponse.next()
-  }
+
+  if (pathname.startsWith('/api/')) return NextResponse.next()
+  if (pathname.startsWith('/_next/')) return NextResponse.next()
+  if (pathname.includes('favicon')) return NextResponse.next()
+
   const token = await getToken({
     req,
-    secret: 'antigravity-secret-key-2025',
+    secret: process.env.NEXTAUTH_SECRET || 'darshans-secret-key-2025-indore',
   })
-  if (!token) {
-    return NextResponse.redirect(new URL('/admin/login', req.url))
+
+  if (pathname === '/admin/login') {
+    if (token) return NextResponse.redirect(new URL('/admin', req.url))
+    return NextResponse.next()
   }
+
+  if (pathname.startsWith('/admin')) {
+    if (!token) return NextResponse.redirect(new URL('/admin/login', req.url))
+    return NextResponse.next()
+  }
+
   return NextResponse.next()
 }
+
 export const config = {
   matcher: ['/admin/:path*'],
 }
