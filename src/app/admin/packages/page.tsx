@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
@@ -27,7 +28,7 @@ export default function PackagesAdminPage() {
 
   const fetchPackages = async () => {
     setLoading(true)
-    const res = await fetch("/api/packages")
+    const res = await fetch("/api/packages", { cache: 'no-store' })
     const data = await res.json()
     setPackages(data.packages || [])
     setLoading(false)
@@ -86,7 +87,7 @@ export default function PackagesAdminPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-3 md:p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Manage Packages</h1>
@@ -151,7 +152,7 @@ export default function PackagesAdminPage() {
           <p className="text-muted-foreground">No packages found. Add your first package to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {packages.map((pkg) => (
             <div key={pkg.id} className="relative flex flex-col rounded-2xl border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all overflow-hidden group">
               <div className={`absolute top-0 left-0 w-full h-1 ${pkg.isActive ? 'bg-green-500' : 'bg-muted-foreground'}`}></div>

@@ -196,9 +196,9 @@ export function BookingForm({ isAdmin }: { isAdmin?: boolean } = {}) {
     <div className="max-w-2xl mx-auto p-4 py-8">
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-2">Book Your Party</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-1 md:gap-2">
           {[1,2,3,4,5,6].map(i => (
-            <div key={i} className={`h-2 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-muted'}`} />
+            <div key={i} className={`h-1 md:h-2 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-muted'}`} />
           ))}
         </div>
       </div>
@@ -521,7 +521,7 @@ export function BookingForm({ isAdmin }: { isAdmin?: boolean } = {}) {
             </div>
           )}
 
-          <div className="flex justify-between pt-6 border-t mt-8">
+          <div className="flex flex-col sm:flex-row gap-3 justify-between pt-6 border-t mt-8">
             <Button type="button" variant="outline" onClick={prevStep} disabled={step === 1 || submitting}>
               Back
             </Button>

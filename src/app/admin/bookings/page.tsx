@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -22,7 +23,7 @@ export default function BookingsListPage() {
   const fetchBookings = async () => {
     setLoading(true)
     const url = filterStatus !== "ALL" ? `/api/bookings?status=${filterStatus}` : "/api/bookings"
-    const res = await fetch(url)
+    const res = await fetch(url, { cache: 'no-store' })
     const data = await res.json()
     setBookings(data.bookings || [])
     setLoading(false)
@@ -89,7 +90,7 @@ export default function BookingsListPage() {
   })
 
   return (
-    <div className="p-8">
+    <div className="p-3 md:p-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Bookings</h1>
@@ -101,7 +102,7 @@ export default function BookingsListPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-card p-4 rounded-xl border">
+      <div className="flex flex-col md:flex-row gap-3 mb-6 bg-card p-4 rounded-xl border">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input 
@@ -136,7 +137,7 @@ export default function BookingsListPage() {
         </Select>
       </div>
 
-      <div className="border rounded-xl bg-card overflow-hidden">
+      <div className="overflow-x-auto rounded-xl border bg-card">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>

@@ -86,7 +86,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-3 md:p-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
         <p className="text-muted-foreground">
@@ -100,7 +100,7 @@ export default function SettingsPage() {
             <CardTitle>Pricing Configurations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Default Advance Amount (₹)</Label>
                 <Input defaultValue="2000" />

@@ -26,7 +26,7 @@ export default function Home() {
           <div className="px-6 py-2 border border-amber-500/30 rounded-full text-amber-500 font-medium tracking-widest text-sm uppercase mb-8 bg-amber-500/5 backdrop-blur-sm">
             5-Star Rooftop Experience
           </div>
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white mb-6 drop-shadow-2xl leading-tight">
+          <h1 className="text-4xl md:text-7xl font-black tracking-tighter text-white mb-6 drop-shadow-2xl leading-tight">
             K's Darshan Cafe <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600">
               & Restaurant
@@ -35,7 +35,7 @@ export default function Home() {
           <p className="text-xl md:text-2xl text-zinc-400 mb-12 max-w-3xl mx-auto font-light leading-relaxed">
             Indore's Premier Rooftop Destination for Unforgettable Celebrations. Exquisite dining, breathtaking views, and world-class ambiance.
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center w-full sm:w-auto">
             <Link href="/booking/new" className="px-10 py-5 bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 rounded-full font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all hover:scale-105 shadow-[0_0_40px_-10px_rgba(245,158,11,0.5)] text-center flex items-center justify-center gap-2">
               Book Your Party <span className="text-xl">✨</span>
             </Link>
@@ -53,7 +53,7 @@ export default function Home() {
           <div className="w-24 h-1 bg-amber-500 mx-auto rounded-full mb-6"></div>
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">From intimate gatherings to grand celebrations, our venue is perfectly tailored for your special day.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {partyTypes.map((party, i) => (
             <div key={i} className="group p-8 rounded-3xl bg-zinc-900/50 border border-zinc-800/50 shadow-lg hover:shadow-amber-500/10 transition-all duration-500 hover:-translate-y-2 hover:bg-zinc-800/80 hover:border-amber-500/30 backdrop-blur-sm">
               <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 border border-zinc-700/50 group-hover:border-amber-500/50 text-3xl">

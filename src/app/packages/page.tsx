@@ -30,7 +30,7 @@ export default async function PackagesPage() {
         <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center text-white tracking-tight">
           {title} <span className="text-amber-500">Packages</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {packages.map((pkg) => {
             let includes = []
             try {
