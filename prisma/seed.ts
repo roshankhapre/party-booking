@@ -102,6 +102,26 @@ async function main() {
     })
   }
   console.log('All 10 packages created')
+
+  // Seeding Settings
+  const settings = [
+    { key: 'defaultAdvanceAmount', value: '2000' },
+    { key: 'fullHallMinMembers', value: '40' },
+    { key: 'extraHallCharge', value: '5000' },
+    { key: 'buffetMinMembers', value: '40' },
+    { key: 'extraBuffetCharge', value: '150' },
+    { key: 'hallChargeRooftop', value: '0' },
+    { key: 'hallChargePartyHall', value: '3000' },
+  ]
+
+  for (const setting of settings) {
+    await prisma.setting.upsert({
+      where: { key: setting.key },
+      update: {},
+      create: setting,
+    })
+  }
+  console.log('All default settings seeded')
   console.log('Seed completed successfully!')
 }
 

@@ -3,13 +3,14 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { format, isToday } from "date-fns"
+import { format, isToday, isThisWeek } from "date-fns"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Eye, Download, CheckCircle, Ban } from "lucide-react"
+import { Search, Eye, Download, CheckCircle, Ban, Calendar } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
 export default function BookingsListPage() {
@@ -17,7 +18,10 @@ export default function BookingsListPage() {
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState("ALL")
   const [searchQuery, setSearchQuery] = useState("")
-  const [dateRange, setDateRange] = useState("ALL")
+  
+  // Date filtering state variables
+  const [selectedDate, setSelectedDate] = useState<string>("")
+  const [filterMode, setFilterMode] = useState<"ALL" | "TODAY" | "THIS_WEEK" | "DATE">("ALL")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const fetchBookings = async () => {
@@ -58,7 +62,7 @@ export default function BookingsListPage() {
   const exportCSV = () => {
     if (bookings.length === 0) return;
     const headers = ["Booking Code", "Customer Name", "Phone", "Date", "Time Slot", "Type", "Guests", "Status"]
-    const rows = filteredBookings.map(b => [
+    const rows = sortedBookings.map(b => [
       b.bookingCode, b.customerName, b.customerPhone, format(new Date(b.eventDate), 'yyyy-MM-dd'),
       b.eventTimeSlot, b.partyType, b.memberCount, b.status
     ])
@@ -78,16 +82,45 @@ export default function BookingsListPage() {
                           b.customerPhone.includes(searchQuery)
                           
     let matchesDate = true
-    if (dateRange === 'TODAY') {
-      matchesDate = isToday(new Date(b.eventDate))
-    } else if (dateRange === 'UPCOMING') {
-      matchesDate = new Date(b.eventDate) >= new Date()
-    } else if (dateRange === 'PAST') {
-      matchesDate = new Date(b.eventDate) < new Date() && !isToday(new Date(b.eventDate))
+    const eventDateObj = new Date(b.eventDate)
+    
+    if (filterMode === 'TODAY') {
+      matchesDate = isToday(eventDateObj)
+    } else if (filterMode === 'THIS_WEEK') {
+      matchesDate = isThisWeek(eventDateObj, { weekStartsOn: 1 })
+    } else if (filterMode === 'DATE' && selectedDate) {
+      const selectedDateObj = new Date(selectedDate)
+      matchesDate = eventDateObj.getFullYear() === selectedDateObj.getFullYear() &&
+                    eventDateObj.getMonth() === selectedDateObj.getMonth() &&
+                    eventDateObj.getDate() === selectedDateObj.getDate()
     }
     
     return matchesSearch && matchesDate
   })
+
+  // Sort by event date (upcoming first)
+  const sortedBookings = [...filteredBookings].sort((a, b) => {
+    return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
+  })
+
+  const getFilterText = () => {
+    const count = sortedBookings.length
+    const plural = count === 1 ? 'booking' : 'bookings'
+    if (filterMode === 'TODAY') {
+      return `${count} ${plural} on Today`
+    }
+    if (filterMode === 'THIS_WEEK') {
+      return `${count} ${plural} in This Week`
+    }
+    if (filterMode === 'DATE' && selectedDate) {
+      try {
+        return `${count} ${plural} on ${format(new Date(selectedDate), 'MMMM dd, yyyy')}`
+      } catch (e) {
+        return `${count} ${plural} on ${selectedDate}`
+      }
+    }
+    return `${count} ${plural} total`
+  }
 
   return (
     <div className="p-3 md:p-8">
@@ -102,39 +135,78 @@ export default function BookingsListPage() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-3 mb-6 bg-card p-4 rounded-xl border">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-col md:flex-row gap-4 mb-6 bg-card p-4 rounded-xl border items-end">
+        <div className="relative flex-1 min-w-[200px]">
+          <Label className="text-xs font-semibold mb-1 block">Search</Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by name, code or phone..." 
+              className="pl-9"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="w-[150px]">
+          <Label className="text-xs font-semibold mb-1 block">Status</Label>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Status</SelectItem>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-[180px]">
+          <Label className="text-xs font-semibold mb-1 block">Filter by Date</Label>
           <Input 
-            placeholder="Search by name, code or phone..." 
-            className="pl-9"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            type="date" 
+            value={selectedDate} 
+            onChange={(e) => {
+              setSelectedDate(e.target.value)
+              if (e.target.value) {
+                setFilterMode("DATE")
+              } else {
+                setFilterMode("ALL")
+              }
+            }}
           />
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Status</SelectItem>
-            <SelectItem value="PENDING">Pending</SelectItem>
-            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateRange} onValueChange={setDateRange}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Date Range" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Dates</SelectItem>
-            <SelectItem value="TODAY">Today</SelectItem>
-            <SelectItem value="UPCOMING">Upcoming</SelectItem>
-            <SelectItem value="PAST">Past</SelectItem>
-          </SelectContent>
-        </Select>
+
+        <div className="flex gap-2">
+          <Button 
+            variant={filterMode === 'TODAY' ? 'default' : 'outline'} 
+            onClick={() => { setFilterMode('TODAY'); setSelectedDate("") }}
+          >
+            Today
+          </Button>
+          <Button 
+            variant={filterMode === 'THIS_WEEK' ? 'default' : 'outline'} 
+            onClick={() => { setFilterMode('THIS_WEEK'); setSelectedDate("") }}
+          >
+            This Week
+          </Button>
+          {filterMode !== 'ALL' && (
+            <Button 
+              variant="ghost" 
+              onClick={() => { setFilterMode('ALL'); setSelectedDate("") }}
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="text-sm font-semibold text-muted-foreground mb-4">
+        {getFilterText()}
       </div>
 
       <div className="overflow-x-auto rounded-xl border bg-card">
@@ -152,10 +224,10 @@ export default function BookingsListPage() {
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
-            ) : filteredBookings.length === 0 ? (
+            ) : sortedBookings.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No bookings found</TableCell></TableRow>
             ) : (
-              filteredBookings.map((booking) => {
+              sortedBookings.map((booking) => {
                 const isBookingToday = isToday(new Date(booking.eventDate))
                 return (
                   <TableRow key={booking.id} className={isBookingToday ? "bg-yellow-500/10 border-l-4 border-l-yellow-500" : ""}>
@@ -165,8 +237,13 @@ export default function BookingsListPage() {
                       <div className="text-xs text-muted-foreground">{booking.customerPhone}</div>
                     </TableCell>
                     <TableCell>
-                      <div>{format(new Date(booking.eventDate), 'MMM dd, yyyy')}</div>
-                      <div className="text-xs text-muted-foreground">{booking.eventTimeSlot.replace(/_/g, ' ')}</div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-primary shrink-0" />
+                        <div>
+                          <div className="font-bold">{format(new Date(booking.eventDate), 'MMM dd, yyyy')}</div>
+                          <div className="text-xs text-muted-foreground">{booking.eventTimeSlot.replace(/_/g, ' ')}</div>
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-primary/5">{booking.partyType.replace(/_/g, ' ')}</Badge>

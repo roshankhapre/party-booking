@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { formatINR } from './utils';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -73,3 +74,88 @@ export async function sendAdminNewBookingEmail(booking: any) {
     html: generateEmailTemplate('New Booking Notification', content)
   });
 }
+
+export async function sendBillEmail(email: string, booking: any) {
+  if (!email || !process.env.GMAIL_USER) return;
+
+  let parsedRequests: any = {}
+  try {
+    parsedRequests = JSON.parse(booking.specialRequests || "{}")
+  } catch (e) {}
+
+  const isPackage = booking.bookingType === 'PACKAGE'
+  const packageAmount = isPackage ? (booking.package?.flatPrice ? Number(booking.package.flatPrice) : Number(booking.memberCount) * Number(booking.package?.pricePerHead || 0)) : 0
+  const hallCharge = isPackage ? Number(booking.extraHallCharge || 0) : 0
+  const buffetCharge = isPackage ? Number(booking.extraBuffetCharge || 0) : 0
+
+  const subtotal = packageAmount + hallCharge + buffetCharge
+  const gst = isPackage ? (subtotal * 0.05) : 0
+  const grandTotal = isPackage ? (subtotal + gst) : Number(booking.advanceAmount)
+  const advancePaid = Number(booking.advanceAmount)
+  const balanceDue = isPackage ? (grandTotal - advancePaid) : 0
+
+  const eventDateStr = new Date(booking.eventDate).toLocaleDateString('en-IN')
+
+  const content = `
+    <p>Dear ${booking.customerName},</p>
+    <p>Thank you for choosing <strong>K's Darshan Cafe & Restaurant</strong>. Please find the details of your booking and receipt below:</p>
+    
+    <div style="border: 1px solid #333; padding: 15px; border-radius: 8px; margin-top: 20px;">
+      <h3 style="color: #d4af37; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 8px;">Booking Information</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <tr><td style="padding: 6px 0; color: #888;">Booking Code:</td><td style="padding: 6px 0; text-align: right; font-weight: bold;">${booking.bookingCode}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888;">Party Type:</td><td style="padding: 6px 0; text-align: right;">${booking.partyType.replace(/_/g, ' ')}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888;">Event Date:</td><td style="padding: 6px 0; text-align: right;">${eventDateStr}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888;">Time Slot:</td><td style="padding: 6px 0; text-align: right;">${booking.eventTimeSlot.replace(/_/g, ' ')}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888;">Members Count:</td><td style="padding: 6px 0; text-align: right;">${booking.memberCount} guests</td></tr>
+        <tr><td style="padding: 6px 0; color: #888;">Venue:</td><td style="padding: 6px 0; text-align: right;">${parsedRequests.venue || 'Rooftop'}</td></tr>
+      </table>
+    </div>
+
+    ${isPackage ? `
+    <div style="border: 1px solid #333; padding: 15px; border-radius: 8px; margin-top: 20px;">
+      <h3 style="color: #d4af37; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 8px;">Package & Food Selections</h3>
+      <p style="margin: 5px 0;"><strong>Package:</strong> ${booking.package?.name || 'Custom'}</p>
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px;">
+        <tr><td style="padding: 4px 0; color: #888;">Welcome Drink:</td><td style="padding: 4px 0; text-align: right;">${parsedRequests.welcomeDrink || 'None'}</td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Starter:</td><td style="padding: 4px 0; text-align: right;">${parsedRequests.starter || 'None'}</td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Paneer Sabji:</td><td style="padding: 4px 0; text-align: right;">${parsedRequests.paneerVeg || 'None'}</td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Seasonal Veg:</td><td style="padding: 4px 0; text-align: right;">${parsedRequests.seasonalVeg || 'None'}</td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Dal:</td><td style="padding: 4px 0; text-align: right;">${parsedRequests.dal || 'None'}</td></tr>
+        <tr><td style="padding: 4px 0; color: #888;">Sweet:</td><td style="padding: 4px 0; text-align: right;">${parsedRequests.sweet || 'None'}</td></tr>
+      </table>
+    </div>
+    ` : ''}
+
+    <div style="border: 1px solid #333; padding: 15px; border-radius: 8px; margin-top: 20px;">
+      <h3 style="color: #d4af37; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 8px;">Billing Details</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <tr><td style="padding: 6px 0; color: #888;">Package Amount:</td><td style="padding: 6px 0; text-align: right;">${formatINR(packageAmount)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888;">Hall Charge:</td><td style="padding: 6px 0; text-align: right;">${formatINR(hallCharge)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888;">Buffet Charge:</td><td style="padding: 6px 0; text-align: right;">${formatINR(buffetCharge)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888; border-top: 1px solid #333;">GST (5%):</td><td style="padding: 6px 0; text-align: right; border-top: 1px solid #333;">${formatINR(gst)}</td></tr>
+        <tr style="font-weight: bold; color: #d4af37;"><td style="padding: 8px 0; border-top: 2px solid #d4af37;">GRAND TOTAL:</td><td style="padding: 8px 0; text-align: right; border-top: 2px solid #d4af37;">${formatINR(grandTotal)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #888; border-top: 1px solid #333;">Advance Paid:</td><td style="padding: 6px 0; text-align: right; border-top: 1px solid #333; color: #5cb85c;">${formatINR(advancePaid)}</td></tr>
+        <tr style="font-weight: bold; font-size: 16px;"><td style="padding: 8px 0; border-top: 1px solid #333;">BALANCE DUE:</td><td style="padding: 8px 0; text-align: right; border-top: 1px solid #333; color: #d9534f;">${formatINR(balanceDue)}</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-top: 20px; font-size: 12px; color: #888; line-height: 1.5;">
+      <p style="margin: 0 0 5px 0;"><strong>Terms & Conditions:</strong></p>
+      <ul style="margin: 0; padding-left: 15px;">
+        <li>Advance payment is non-refundable.</li>
+        <li>Outside food is not allowed.</li>
+        <li>Event duration is 3 hours. Extra ₹1000/hour after that.</li>
+        <li>No alcoholic drinks or smoking allowed on premises.</li>
+      </ul>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"K's Darshan Cafe & Restaurant" <${process.env.GMAIL_USER}>`,
+    to: email,
+    subject: `Booking Bill Receipt - ${booking.bookingCode}`,
+    html: generateEmailTemplate('Booking Bill Receipt', content)
+  });
+}
+

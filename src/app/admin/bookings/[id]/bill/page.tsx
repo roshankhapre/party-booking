@@ -22,121 +22,110 @@ export default function PrintBillPage() {
     load()
   }, [id])
 
-  if (!booking) return <div className="p-8">Preparing bill...</div>
+  if (!booking) return <div className="p-8 font-mono text-sm">Preparing bill...</div>
+
+  let parsedRequests: any = {}
+  try {
+    parsedRequests = JSON.parse(booking.specialRequests || "{}")
+  } catch (e) {}
+
+  const isPackage = booking.bookingType === 'PACKAGE'
+  const packageAmount = isPackage ? (booking.package?.flatPrice ? Number(booking.package.flatPrice) : Number(booking.memberCount) * Number(booking.package?.pricePerHead || 0)) : 0
+  const hallCharge = isPackage ? Number(booking.extraHallCharge || 0) : 0
+  const buffetCharge = isPackage ? Number(booking.extraBuffetCharge || 0) : 0
+
+  const subtotal = packageAmount + hallCharge + buffetCharge
+  const gst = isPackage ? (subtotal * 0.05) : 0
+  const grandTotal = isPackage ? (subtotal + gst) : Number(booking.advanceAmount)
+  const advancePaid = Number(booking.advanceAmount)
+  const balanceDue = isPackage ? (grandTotal - advancePaid) : 0
+
+  const dateStr = format(new Date(), 'dd/MM/yyyy')
+  const eventDateStr = format(new Date(booking.eventDate), 'dd/MM/yyyy')
+
+  // Parse includes if package exists
+  let includesList: string[] = []
+  if (booking.package?.includes) {
+    try {
+      includesList = typeof booking.package.includes === 'string' 
+        ? JSON.parse(booking.package.includes) 
+        : booking.package.includes
+    } catch (e) {}
+  }
 
   return (
-    <div className="bg-white text-black min-h-screen p-8 print:p-0 font-sans max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="text-center mb-8 border-b-2 border-black pb-4">
-        <h1 className="text-4xl font-bold uppercase tracking-wider mb-2">Darshan Cafe</h1>
-        <p className="text-sm">Rooftop Restaurant & Bar, Indore, MP</p>
-        <p className="text-sm font-semibold mt-2">GSTIN: 23AAAAA0000A1Z5</p>
-      </div>
-
-      {/* Booking Info */}
-      <div className="flex justify-between mb-8 text-sm">
-        <div>
-          <p><span className="font-semibold">Bill To:</span> {booking.customerName}</p>
-          <p><span className="font-semibold">Phone:</span> {booking.customerPhone}</p>
-          {booking.customerEmail && <p><span className="font-semibold">Email:</span> {booking.customerEmail}</p>}
-        </div>
-        <div className="text-right">
-          <p><span className="font-semibold">Booking ID:</span> {booking.bookingCode}</p>
-          <p><span className="font-semibold">Date:</span> {format(new Date(), 'dd/MM/yyyy')}</p>
-          <p><span className="font-semibold">Event Date:</span> {format(new Date(booking.eventDate), 'dd/MM/yyyy')}</p>
-        </div>
-      </div>
-
-      {/* Items Table */}
-      <table className="w-full mb-8 text-sm border-collapse border border-black">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="border border-black p-2 text-left">Description</th>
-            <th className="border border-black p-2 text-center text-nowrap">Qty</th>
-            <th className="border border-black p-2 text-right">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {booking.bookingType === 'PACKAGE' ? (
-            <>
-              <tr>
-                <td className="border border-black p-2">
-                  <div className="font-semibold">{booking.package?.name || 'Custom Package'}</div>
-                  <div className="text-xs text-gray-600">{booking.partyType.replace('_',' ')}</div>
-                </td>
-                <td className="border border-black p-2 text-center">{booking.memberCount} guests</td>
-                <td className="border border-black p-2 text-right">
-                   {formatINR(Number(booking.totalAmount) - Number(booking.extraBuffetCharge) - Number(booking.extraHallCharge) - ((Number(booking.totalAmount) - Number(booking.extraBuffetCharge) - Number(booking.extraHallCharge))*0.05))} {/* Simplified back-calculation for display */}
-                </td>
-              </tr>
-              {Number(booking.extraHallCharge) > 0 && (
-                <tr>
-                  <td className="border border-black p-2">Full Hall Exclusive Reservation</td>
-                  <td className="border border-black p-2 text-center">1</td>
-                  <td className="border border-black p-2 text-right">{formatINR(Number(booking.extraHallCharge))}</td>
-                </tr>
-              )}
-              {Number(booking.extraBuffetCharge) > 0 && (
-                <tr>
-                  <td className="border border-black p-2">Extra Buffet Arrangement</td>
-                  <td className="border border-black p-2 text-center">{booking.memberCount}</td>
-                  <td className="border border-black p-2 text-right">{formatINR(Number(booking.extraBuffetCharge))}</td>
-                </tr>
-              )}
-            </>
-          ) : (
-            <tr>
-              <td className="border border-black p-2">
-                <div className="font-semibold">Table Reservation Advance</div>
-                <div className="text-xs text-gray-600">Final food bill processed separately via Petpooja.</div>
-              </td>
-              <td className="border border-black p-2 text-center">-</td>
-              <td className="border border-black p-2 text-right">{formatINR(Number(booking.advanceAmount))}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {/* Totals */}
-      <div className="flex justify-end mb-8">
-        <div className="w-64 space-y-2 text-sm">
-          {booking.bookingType === 'PACKAGE' && (
-             <>
-               <div className="flex justify-between">
-                 <span>Subtotal</span>
-                 <span>{formatINR(Number(booking.totalAmount) / 1.05)}</span> {/* Rough subtotal */}
-               </div>
-               <div className="flex justify-between">
-                 <span>GST (Food + Services)</span>
-                 <span>{formatINR(Number(booking.totalAmount) - (Number(booking.totalAmount) / 1.05))}</span>
-               </div>
-             </>
-          )}
-          <div className="flex justify-between font-bold text-lg border-t-2 border-black pt-2">
-            <span>Grand Total</span>
-            <span>{formatINR(Number(booking.totalAmount || booking.advanceAmount))}</span>
-          </div>
-          <div className="flex justify-between border-t border-black pt-2">
-            <span>Advance Deposited</span>
-            <span>{formatINR(Number(booking.advanceAmount))}</span>
-          </div>
-          <div className="flex justify-between font-bold">
-            <span>Balance Due</span>
-            <span>{formatINR(Number(booking.balanceAmount || 0))}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center text-sm border-t-2 border-black pt-4 text-gray-600 mt-12">
-        <p>Thank you for celebrating with us at Darshan Cafe!</p>
-        <p>For inquiries, contact +91 9876543210</p>
-      </div>
+    <div id="thermal-bill" className="font-mono text-xs text-black bg-white p-4 w-[80mm] max-w-[80mm] mx-auto select-none">
+      <div>================================</div>
+      <div className="text-center font-bold">K'S DARSHAN CAFE</div>
+      <div className="text-center font-bold">Cafe & Restaurant</div>
+      <div className="text-center font-bold">Indore, MP</div>
+      <div className="text-center">Tel: +91 9876543210</div>
+      <div>================================</div>
+      <div className="font-bold text-center">BOOKING RECEIPT</div>
+      <div>Date: {dateStr}</div>
+      <div>--------------------------------</div>
+      <div>Booking Code: {booking.bookingCode}</div>
+      <div>Party Type:   {booking.partyType.replace(/_/g, ' ')}</div>
+      <div>Event Date:  {eventDateStr}</div>
+      <div>Time Slot:   {booking.eventTimeSlot.replace(/_/g, ' ')}</div>
+      <div>Members:      {booking.memberCount}</div>
+      <div>--------------------------------</div>
+      <div className="font-bold">CUSTOMER DETAILS</div>
+      <div>Name:  {booking.customerName}</div>
+      <div>Phone: {booking.customerPhone}</div>
+      {isPackage && (
+        <>
+          <div>--------------------------------</div>
+          <div className="font-bold">PACKAGE: {booking.package?.name || 'Custom'}</div>
+          <div>Includes:</div>
+          {includesList.map((item, i) => (
+            <div key={i}>- {item}</div>
+          ))}
+          <div>--------------------------------</div>
+          <div className="font-bold">FOOD SELECTIONS</div>
+          <div>Welcome Drink: {parsedRequests.welcomeDrink || 'None'}</div>
+          <div>Starter:       {parsedRequests.starter || 'None'}</div>
+          <div>Paneer Sabji:  {parsedRequests.paneerVeg || 'None'}</div>
+          <div>Seasonal Veg:  {parsedRequests.seasonalVeg || 'None'}</div>
+          <div>Dal:           {parsedRequests.dal || 'None'}</div>
+          <div>Sweet:         {parsedRequests.sweet || 'None'}</div>
+        </>
+      )}
+      <div>--------------------------------</div>
+      <div className="font-bold">BILLING</div>
+      <div>Package Amount: {formatINR(packageAmount)}</div>
+      <div>Hall Charge:    {formatINR(hallCharge)}</div>
+      <div>Buffet Charge:  {formatINR(buffetCharge)}</div>
+      <div>--------------------------------</div>
+      <div>GST (5%):       {formatINR(gst)}</div>
+      <div className="font-bold">TOTAL:          {formatINR(grandTotal)}</div>
+      <div>--------------------------------</div>
+      <div>Advance Paid:   {formatINR(advancePaid)}</div>
+      <div className="font-bold">BALANCE DUE:    {formatINR(balanceDue)}</div>
+      <div>================================</div>
+      <div className="text-center font-bold">TERMS & CONDITIONS</div>
+      <div>* Advance non-refundable</div>
+      <div>* Outside food not allowed</div>
+      <div>* Duration: 3 hours</div>
+      <div>* After 3hrs: Rs.1000/hr extra</div>
+      <div>* No alcohol/smoking</div>
+      <div>================================</div>
+      <div className="text-center font-bold">Thank you for choosing us!</div>
+      <div className="text-center font-bold">See you again! :)</div>
+      <div>================================</div>
 
       <style jsx global>{`
+        body {
+          background-color: white;
+          color: black;
+          margin: 0;
+          padding: 0;
+        }
         @media print {
-          body { -webkit-print-color-adjust: exact; margin: 0; }
-          .print\\:p-0 { padding: 0 !important; }
+          body * { visibility: hidden; }
+          #thermal-bill, #thermal-bill * { visibility: visible; }
+          #thermal-bill { position: fixed; top: 0; left: 0; width: 80mm; padding: 0; margin: 0; }
+          @page { size: 80mm auto; margin: 0; }
         }
       `}</style>
     </div>

@@ -23,8 +23,10 @@ export function calculateBookingPrice({
   memberCount,
   isFullHallRequested,
   buffetRequested,
-  packageData
-}: CalculateBookingInput) {
+  packageData,
+  settings,
+  venue = 'Rooftop'
+}: CalculateBookingInput & { settings?: Record<string, string>; venue?: string }) {
   if (bookingType === 'TABLE_ONLY') {
     return {
       subtotal: 0,
@@ -36,6 +38,15 @@ export function calculateBookingPrice({
     }
   }
 
+  // Load configuration from settings or use defaults
+  const fullHallMinMembers = settings?.fullHallMinMembers ? Number(settings.fullHallMinMembers) : 40
+  const extraHallChargeSetting = settings?.extraHallCharge ? Number(settings.extraHallCharge) : 5000
+  const buffetMinMembers = settings?.buffetMinMembers ? Number(settings.buffetMinMembers) : 40
+  const extraBuffetChargeSetting = settings?.extraBuffetCharge ? Number(settings.extraBuffetCharge) : 150
+  
+  const hallChargeRooftop = settings?.hallChargeRooftop ? Number(settings.hallChargeRooftop) : 0
+  const hallChargePartyHall = settings?.hallChargePartyHall ? Number(settings.hallChargePartyHall) : 3000
+
   // PACKAGE LOGIC
   let basePrice = 0
   if (packageData) {
@@ -46,35 +57,39 @@ export function calculateBookingPrice({
     }
   }
 
+  // Venue specific base hall charge
+  const baseHallCharge = venue === 'Party Hall' ? hallChargePartyHall : hallChargeRooftop
+
   let extraHallCharge = 0
-  if (memberCount < FULL_HALL_MIN_MEMBERS && isFullHallRequested) {
-    extraHallCharge = EXTRA_HALL_CHARGE
+  if (memberCount < fullHallMinMembers && isFullHallRequested) {
+    extraHallCharge = extraHallChargeSetting
   }
 
-  // Assuming buffet is requested manually for groups < 40 and not included in package
+  const totalHallCharge = baseHallCharge + extraHallCharge
+
+  // Assuming buffet is requested manually for groups < threshold and not included in package
   let extraBuffetCharge = 0
   const isBuffetIncluded = packageData?.includes && Array.isArray(packageData.includes) && 
     (packageData.includes.includes('Basic Buffet') || packageData.includes.includes('Premium Buffet'))
 
-  if (memberCount < FULL_HALL_MIN_MEMBERS && buffetRequested && !isBuffetIncluded) {
-    extraBuffetCharge = memberCount * EXTRA_BUFFET_CHARGE_PER_HEAD
+  if (memberCount < buffetMinMembers && buffetRequested && !isBuffetIncluded) {
+    extraBuffetCharge = memberCount * extraBuffetChargeSetting
   }
 
-  const subtotal = basePrice + extraHallCharge + extraBuffetCharge
+  const subtotal = basePrice + totalHallCharge + extraBuffetCharge
   
-  // simplified GST: apply food GST to base price (assuming it's mostly food) + extra buffet
-  // apply services GST to hall charge
-  const gstFood = (basePrice + extraBuffetCharge) * GST_FOOD
-  const gstServices = (extraHallCharge) * GST_SERVICES
+  // 5% GST applied to total subtotal (package amount + hall charge + buffet charge)
+  const gstTotal = subtotal * 0.05
   
-  const total = subtotal + gstFood + gstServices
+  const total = subtotal + gstTotal
 
   return {
     subtotal,
-    extraHallCharge,
+    extraHallCharge: totalHallCharge,
     extraBuffetCharge,
-    gstFood,
-    gstServices,
+    gstFood: gstTotal,
+    gstServices: 0,
     total
   }
 }
+

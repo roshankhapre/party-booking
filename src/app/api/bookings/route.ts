@@ -28,14 +28,33 @@ export async function POST(request: Request) {
       extraBuffetCharge: reqExtraBuffet
     } = body
 
+    // Fetch settings from database
+    const dbSettings = await prisma.setting.findMany()
+    const settingsMap = dbSettings.reduce((acc, curr) => {
+      acc[curr.key] = curr.value
+      return acc
+    }, {} as Record<string, string>)
+
+    const defaultAdvance = Number(settingsMap.defaultAdvanceAmount || 2000)
+
     // Calculate Pricing
-    let advanceAmount = reqAdvance !== undefined ? Number(reqAdvance) : Number(process.env.NEXT_PUBLIC_DEFAULT_ADVANCE || 2000)
+    let advanceAmount = reqAdvance !== undefined ? Number(reqAdvance) : defaultAdvance
     let totalAmount = reqTotal !== undefined ? Number(reqTotal) : null
     let balanceAmount = reqBalance !== undefined ? Number(reqBalance) : null
 
     let extraHallCharge = reqExtraHall !== undefined ? Number(reqExtraHall) : 0
     let extraBuffetCharge = reqExtraBuffet !== undefined ? Number(reqExtraBuffet) : 0
-    let isFullHallRequested = isFullHall || Number(memberCount) >= 40
+
+    let venue = 'Rooftop'
+    if (specialRequests) {
+      try {
+        const parsed = JSON.parse(specialRequests)
+        if (parsed.venue) venue = parsed.venue
+      } catch (e) {}
+    }
+
+    const fullHallMinMembers = settingsMap.fullHallMinMembers ? Number(settingsMap.fullHallMinMembers) : 40
+    let isFullHallRequested = isFullHall || Number(memberCount) >= fullHallMinMembers
 
     // Smart booking conflict detection
     const bookingDate = new Date(eventDate)
@@ -64,14 +83,22 @@ export async function POST(request: Request) {
         memberCount: Number(memberCount),
         isFullHallRequested,
         buffetRequested,
-        packageData: pkg
+        packageData: pkg,
+        settings: settingsMap,
+        venue
       })
 
       totalAmount = reqTotal !== undefined ? Number(reqTotal) : pricing.total
-      advanceAmount = reqAdvance !== undefined ? Number(reqAdvance) : 5000 // or some percentage like totalAmount * 0.2
+      advanceAmount = reqAdvance !== undefined ? Number(reqAdvance) : defaultAdvance
       balanceAmount = reqBalance !== undefined ? Number(reqBalance) : (totalAmount ? totalAmount - advanceAmount : null)
       extraHallCharge = reqExtraHall !== undefined ? Number(reqExtraHall) : pricing.extraHallCharge
       extraBuffetCharge = reqExtraBuffet !== undefined ? Number(reqExtraBuffet) : pricing.extraBuffetCharge
+    } else {
+      // TABLE_ONLY
+      if (reqTotal !== undefined) {
+        totalAmount = Number(reqTotal)
+        balanceAmount = reqBalance !== undefined ? Number(reqBalance) : totalAmount - advanceAmount
+      }
     }
 
     // Generate Booking Code

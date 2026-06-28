@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
   const [testModalOpen, setTestModalOpen] = useState(false);
@@ -27,6 +28,55 @@ export default function SettingsPage() {
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<Record<string, string>>({
+    defaultAdvanceAmount: "2000",
+    fullHallMinMembers: "40",
+    extraHallCharge: "5000",
+    buffetMinMembers: "40",
+    extraBuffetCharge: "150",
+    hallChargeRooftop: "0",
+    hallChargePartyHall: "3000",
+  });
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        if (data.success && data.settings) {
+          setSettings((prev) => ({ ...prev, ...data.settings }));
+        }
+      } catch (e) {
+        console.error("Failed to load settings", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  const handleSavePricing = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings }),
+      });
+      if (res.ok) {
+        toast({ title: "Settings saved successfully!" });
+      } else {
+        toast({ title: "Failed to save settings", variant: "destructive" });
+      }
+    } catch (e) {
+      toast({ title: "Error saving settings", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (testModalOpen) {
@@ -85,6 +135,14 @@ export default function SettingsPage() {
     setTesting(false);
   };
 
+  const handleSettingChange = (key: string, value: string) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  if (loading) {
+    return <div className="p-8">Loading settings...</div>;
+  }
+
   return (
     <div className="p-3 md:p-8 max-w-4xl">
       <div className="mb-8">
@@ -103,23 +161,74 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Default Advance Amount (₹)</Label>
-                <Input defaultValue="2000" />
+                <Input
+                  value={settings.defaultAdvanceAmount}
+                  onChange={(e) =>
+                    handleSettingChange("defaultAdvanceAmount", e.target.value)
+                  }
+                />
               </div>
               <div className="space-y-2">
-                <Label>Extra Hall Charge (₹)</Label>
-                <Input defaultValue="500" />
+                <Label>Full Hall Minimum Members</Label>
+                <Input
+                  type="number"
+                  value={settings.fullHallMinMembers}
+                  onChange={(e) =>
+                    handleSettingChange("fullHallMinMembers", e.target.value)
+                  }
+                />
               </div>
               <div className="space-y-2">
-                <Label>Extra Buffet Charge Per Head (₹)</Label>
-                <Input defaultValue="150" />
+                <Label>Extra Hall Charge when below minimum (₹)</Label>
+                <Input
+                  value={settings.extraHallCharge}
+                  onChange={(e) =>
+                    handleSettingChange("extraHallCharge", e.target.value)
+                  }
+                />
               </div>
               <div className="space-y-2">
-                <Label>Minimum Members for Full Hall</Label>
-                <Input defaultValue="40" type="number" />
+                <Label>Buffet Available Above Members</Label>
+                <Input
+                  type="number"
+                  value={settings.buffetMinMembers}
+                  onChange={(e) =>
+                    handleSettingChange("buffetMinMembers", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Extra Buffet Charge Per Head if below minimum (₹)</Label>
+                <Input
+                  value={settings.extraBuffetCharge}
+                  onChange={(e) =>
+                    handleSettingChange("extraBuffetCharge", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Hall Charge for Rooftop (₹)</Label>
+                <Input
+                  value={settings.hallChargeRooftop}
+                  onChange={(e) =>
+                    handleSettingChange("hallChargeRooftop", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Hall Charge for Party Hall (₹)</Label>
+                <Input
+                  value={settings.hallChargePartyHall}
+                  onChange={(e) =>
+                    handleSettingChange("hallChargePartyHall", e.target.value)
+                  }
+                />
               </div>
             </div>
             <div className="pt-4 border-t mt-4 flex justify-end">
-              <Button>Save Pricing</Button>
+              <Button onClick={handleSavePricing} disabled={saving}>
+                {saving ? "Saving..." : "Save Pricing"}
+              </Button>
             </div>
           </CardContent>
         </Card>
